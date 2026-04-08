@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLT Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            min-height: 100vh;
+        }
+        .header {
+            background: #1a365d;
+            color: white;
+            padding: 20px 40px;
+        }
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .header .subtitle { font-size: 14px; opacity: 0.8; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px 40px; }
+
+        /* Steps */
+        .steps { display: flex; gap: 8px; margin-bottom: 30px; align-items: center; }
+        .step-indicator {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 16px; border-radius: 20px;
+            font-size: 14px; font-weight: 500;
+            background: #e2e8f0; color: #718096;
+        }
+        .step-indicator.active { background: #1a365d; color: white; }
+        .step-indicator.completed { background: #48bb78; color: white; }
+        .step-connector { width: 30px; height: 2px; background: #cbd5e0; }
+
+        /* Cards */
+        .card {
+            background: white; border-radius: 12px;
+            padding: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        .card h2 { font-size: 20px; margin-bottom: 16px; color: #1a365d; }
+
+        /* Upload areas */
+        .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .upload-panel { }
+        .upload-panel h3 { font-size: 16px; margin-bottom: 12px; color: #2d3748; }
+        .upload-panel .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 10px;
+            font-size: 11px; font-weight: 600; margin-left: 8px;
+        }
+        .badge-required { background: #fed7d7; color: #c53030; }
+        .badge-optional { background: #e2e8f0; color: #718096; }
+        .upload-area {
+            border: 2px dashed #cbd5e0; border-radius: 12px;
+            padding: 30px; text-align: center; cursor: pointer; transition: all 0.2s;
+        }
+        .upload-area:hover, .upload-area.dragover { border-color: #1a365d; background: #f7fafc; }
+        .upload-area.has-file { border-color: #48bb78; background: #f0fff4; }
+        .upload-icon { font-size: 36px; margin-bottom: 8px; color: #a0aec0; }
+        .upload-text { font-size: 14px; color: #718096; }
+        .upload-filename { font-size: 13px; color: #48bb78; font-weight: 600; margin-top: 4px; }
+        .upload-meta { font-size: 12px; color: #a0aec0; margin-top: 2px; }
+
+        /* Form fields */
+        .form-row { display: flex; gap: 20px; margin-top: 20px; align-items: end; }
+        .form-group { flex: 1; }
+        .form-group label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; color: #4a5568; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0;
+            border-radius: 8px; font-size: 14px;
+        }
+        .form-group input:focus { outline: none; border-color: #1a365d; box-shadow: 0 0 0 3px rgba(26,54,93,0.1); }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;
+        }
+        .btn-primary { background: #1a365d; color: white; }
+        .btn-primary:hover { background: #2a4a7f; }
+        .btn-primary:disabled { background: #a0aec0; cursor: not-allowed; }
+        .btn-success { background: #48bb78; color: white; }
+        .btn-success:hover { background: #38a169; }
+        .btn-outline { background: white; color: #1a365d; border: 2px solid #1a365d; }
+        .btn-outline:hover { background: #f7fafc; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .btn-danger { background: #e53e3e; color: white; }
+        .btn-warning { background: #ed8936; color: white; }
+        .btn-warning:hover { background: #dd6b20; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px; }
+        .tab {
+            padding: 10px 20px; cursor: pointer; font-size: 14px; font-weight: 500;
+            color: #718096; border-bottom: 2px solid transparent; margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+        .tab:hover { color: #2d3748; }
+        .tab.active { color: #1a365d; border-bottom-color: #1a365d; }
+        .tab .tab-count {
+            display: inline-block; padding: 1px 8px; border-radius: 10px;
+            font-size: 11px; margin-left: 6px; background: #e2e8f0;
+        }
+        .tab.active .tab-count { background: #1a365d; color: white; }
+
+        /* Table */
+        .table-wrapper { overflow-x: auto; max-height: 600px; overflow-y: auto; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th {
+            background: #1a365d; color: white; padding: 10px 8px;
+            text-align: left; font-weight: 500; position: sticky; top: 0; white-space: nowrap; z-index: 1;
+        }
+        .data-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+        .data-table tr:hover { background: #f7fafc; }
+        .data-table td input {
+            width: 100%; min-width: 80px; padding: 4px 6px;
+            border: 1px solid transparent; border-radius: 4px;
+            font-size: 13px; background: transparent;
+        }
+        .data-table td input:focus { border-color: #1a365d; background: white; outline: none; }
+        .data-table td input:hover { border-color: #cbd5e0; }
+        .section-header-row { background: #e2efda !important; font-weight: 600; }
+        .section-header-row td { padding: 8px; font-size: 13px; color: #2d3748; }
+
+        /* Status badges */
+        .status-badge {
+            display: inline-block; padding: 2px 10px; border-radius: 10px;
+            font-size: 11px; font-weight: 600;
+        }
+        .status-match { background: #c6f6d5; color: #276749; }
+        .status-discrepancy { background: #fefcbf; color: #975a16; }
+        .status-estimate-only { background: #bee3f8; color: #2a4365; }
+        .status-plans-only { background: #fed7d7; color: #9b2c2c; }
+
+        /* Page scanner */
+        .page-candidates { max-height: 300px; overflow-y: auto; margin: 16px 0; }
+        .page-candidate {
+            display: flex; align-items: center; gap: 12px;
+            padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+            margin-bottom: 6px; transition: background 0.1s;
+        }
+        .page-candidate:hover { background: #f7fafc; }
+        .page-candidate input[type="checkbox"] { width: 18px; height: 18px; }
+        .page-candidate .page-info { flex: 1; }
+        .page-candidate .page-num { font-weight: 600; color: #1a365d; }
+        .page-candidate .page-type { font-size: 12px; color: #718096; }
+        .page-candidate .page-codes { font-size: 11px; color: #a0aec0; }
+        .confidence-bar {
+            width: 60px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;
+        }
+        .confidence-bar-fill { height: 100%; border-radius: 3px; }
+
+        /* Actions */
+        .actions { display: flex; gap: 12px; align-items: center; }
+        .actions-right { margin-left: auto; }
+
+        /* Download */
+        .download-area { display: flex; gap: 20px; margin-top: 16px; flex-wrap: wrap; }
+        .download-card {
+            flex: 1; min-width: 200px; border: 2px solid #e2e8f0;
+            border-radius: 12px; padding: 24px; text-align: center;
+        }
+        .download-card:hover { border-color: #48bb78; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .download-card h3 { margin-bottom: 8px; color: #1a365d; }
+        .download-card p { font-size: 13px; color: #718096; margin-bottom: 16px; }
+
+        /* Loading */
+        .spinner {
+            display: inline-block; width: 20px; height: 20px;
+            border: 3px solid rgba(255,255,255,0.3); border-radius: 50%;
+            border-top-color: white; animation: spin 0.8s ease infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); display: flex; align-items: center;
+            justify-content: center; z-index: 1000;
+        }
+        .loading-box {
+            background: white; padding: 40px; border-radius: 16px;
+            text-align: center; max-width: 400px;
+        }
+        .loading-box .spinner { border-color: rgba(26,54,93,0.2); border-top-color: #1a365d; width: 40px; height: 40px; }
+        .loading-box p { margin-top: 16px; color: #4a5568; font-size: 16px; }
+        .loading-box .sub { font-size: 13px; color: #a0aec0; margin-top: 8px; }
+
+        .error {
+            background: #fff5f5; border: 1px solid #fc8181;
+            border-radius: 8px; padding: 12px 16px; color: #c53030; margin-bottom: 16px;
+        }
+        .success-box {
+            background: #f0fff4; border: 1px solid #68d391;
+            border-radius: 8px; padding: 12px 16px; color: #276749; margin-bottom: 16px;
+        }
+
+        .project-info-bar {
+            display: flex; gap: 20px; padding: 16px 20px;
+            background: #f7fafc; border-radius: 8px; margin-bottom: 16px; flex-wrap: wrap;
+        }
+        .project-info-bar .info-item label { font-size: 11px; text-transform: uppercase; color: #a0aec0; font-weight: 600; }
+        .project-info-bar .info-item .value { font-size: 14px; font-weight: 500; }
+
+        .hidden { display: none !important; }
+        .btn-delete-row {
+            background: none; border: none; color: #e53e3e;
+            cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px;
+        }
+        .btn-delete-row:hover { background: #fff5f5; }
+
+        /* Cross-ref comparison table */
+        .diff-old { background: #fed7d7; text-decoration: line-through; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+        .diff-new { background: #c6f6d5; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+
+        /* Summary cards */
+        .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+        .summary-card {
+            padding: 16px; border-radius: 8px; text-align: center;
+        }
+        .summary-card .num { font-size: 28px; font-weight: 700; }
+        .summary-card .label { font-size: 12px; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>MLT Generator</h1>
+        <div class="subtitle">Standard Interiors - Material Lifecycle Tool</div>
+    </div>
+
+    <div class="container">
+        <div class="steps">
+            <div class="step-indicator active" id="step1-ind">1. Upload</div>
+            <div class="step-connector"></div>
+            <div class="step-indicator" id="step2-ind">2. Review & Cross-Reference</div>
+            <div class="step-connector"></div>
+            <div class="step-indicator" id="step3-ind">3. Download</div>
+        </div>
+
+        <div class="error hidden" id="error-box"></div>
+
+        <!-- ═══════════ STEP 1: UPLOAD ═══════════ -->
+        <div id="step1">
+            <div class="card">
+                <h2>Upload Documents</h2>
+                <div class="upload-grid">
+                    <!-- Estimate Upload -->
+                    <div class="upload-panel">
+                        <h3>Estimate PDF <span class="badge badge-required">Required</span></h3>
+                        <div class="upload-area" id="estimate-upload" onclick="document.getElementById('estimate-input').click()">
+                            <div class="upload-icon">&#128196;</div>
+                            <div class="upload-text">Drop estimate PDF here or click to browse</div>
+                            <div class="upload-filename hidden" id="estimate-filename"></div>
+                            <input type="file" id="estimate-input" accept=".pdf" style="display:none">
+                        </div>
+                    </div>
+
+                    <!-- Plans Upload -->
+                    <div class="upload-panel">
+                        <h3>Architectural Plans (IFC) <span class="badge badge-optional">Optional</span></h3>
+                        <div class="upload-area" id="plans-upload" onclick="document.getElementById('plans-input').click()">
+                            <div class="upload-icon">&#128209;</div>
+                            <div class="upload-text">Drop IFC plans PDF here or click to browse</div>
+                            <div class="upload-filename hidden" id="plans-filename"></div>
+                            <div class="upload-meta hidden" id="plans-meta"></div>
+                            <input type="file" id="plans-input" accept=".pdf" style="display:none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="start-date">Projected Install Start Date</label>
+                        <input type="date" id="start-date" required>
+                    </div>
+                    <div class="form-group" style="flex: 0 0 auto;">
+                        <button class="btn btn-primary" id="parse-btn" disabled onclick="parseEstimate()">
+                            Parse Estimate
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Plans Page Scanner (shown after plans upload + estimate parse) -->
+            <div class="card hidden" id="plans-scanner-card">
+                <h2>Finish Schedule Pages</h2>
+                <p style="color: #718096; margin-bottom: 12px;">
+                    Select pages from the plans that contain finish schedule data. High-confidence matches are pre-selected.
+                </p>
+
+                <div id="scan-status"></div>
+                <div class="page-candidates" id="page-candidates"></div>
+
+                <div class="actions">
+                    <button class="btn btn-primary" id="parse-plans-btn" disabled onclick="parsePlans()">
+                        Parse Selected Pages
+                    </button>
+                    <span id="selected-count" style="font-size: 13px; color: #718096;"></span>
+                    <div class="actions-right">
+                        <button class="btn btn-outline btn-sm" onclick="skipPlans()">
+                            Skip Plans - Continue to Review
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ STEP 2: REVIEW ═══════════ -->
+        <div id="step2" class="hidden">
+            <div class="card">
+                <div class="actions" style="margin-bottom: 16px;">
+                    <h2 style="margin-bottom: 0;">Review & Cross-Reference</h2>
+                    <div class="actions-right">
+                        <button class="btn btn-outline btn-sm" onclick="goToStep(1)">Back</button>
+                        <button class="btn btn-success" onclick="generateFiles()">Generate MLT</button>
+                    </div>
+                </div>
+
+                <div class="project-info-bar">
+                    <div class="info-item"><label>Project</label><div class="value" id="project-name-display"></div></div>
+                    <div class="info-item"><label>Customer</label><div class="value" id="customer-display"></div></div>
+                    <div class="info-item"><label>Quote #</label><div class="value" id="quote-display"></div></div>
+                    <div class="info-item"><label>Start Date</label><div class="value" id="date-display"></div></div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('estimate')" id="tab-estimate">
+                        Estimate Materials <span class="tab-count" id="est-count">0</span>
+                    </div>
+                    <div class="tab hidden" onclick="switchTab('plans')" id="tab-plans">
+                        Finish Schedule <span class="tab-count" id="plans-count">0</span>
+                    </div>
+                    <div class="tab hidden" onclick="switchTab('crossref')" id="tab-crossref">
+                        Cross-Reference <span class="tab-count" id="xref-count">0</span>
+                    </div>
+                </div>
+
+                <!-- Tab: Estimate Materials -->
+                <div id="panel-estimate">
+                    <p style="font-size: 13px; color: #718096; margin-bottom: 12px;">
+                        Click any cell to edit. Review all materials before generating.
+                    </p>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="materials-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:30px">#</th>
+                                    <th>Code</th><th>Location</th><th>Vendor</th>
+                                    <th>Selection</th><th>Color</th><th>Size</th>
+                                    <th>Thickness</th><th>Grout Color</th><th>Grout Joint</th>
+                                    <th>Adhesive</th><th>Install Type</th>
+                                    <th>Box QTY</th>
+                                    <th style="width:30px"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="materials-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Plans Finish Schedule -->
+                <div id="panel-plans" class="hidden">
+                    <div class="table-wrapper">
+                        <table class="data-table" id="plans-table">
+                            <thead>
+                                <tr>
+                                    <th>Code</th><th>Type</th><th>Manufacturer</th>
+                                    <th>Product</th><th>Color</th><th>Dimensions</th>
+                                    <th>Application</th>
+                                </tr>
+                            </thead>
+                            <tbody id="plans-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Cross-Reference -->
+                <div id="panel-crossref" class="hidden">
+                    <div class="summary-grid" id="xref-summary"></div>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="crossref-table">
+                            <thead>
+                                <tr>
+                                    <th>Status</th><th>Code</th>
+                                    <th>Estimate Vendor</th><th>Estimate Product</th>
+                                    <th>Plans Manufacturer</th><th>Plans Product</th>
+                                    <th>Differences</th><th>Rooms</th>
+                                </tr>
+                            </thead>
+                            <tbody id="crossref-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ STEP 3: DOWNLOAD ═══════════ -->
+        <div id="step3" class="hidden">
+            <div class="card">
+                <h2>Download Files</h2>
+                <p style="color: #718096; margin-bottom: 20px;">Your files are ready. Click to download.</p>
+
+                <div id="crossref-notice" class="success-box hidden" style="margin-bottom: 20px;">
+                    Cross-reference data has been included in the MLT. Discrepancy rows are highlighted yellow, and items only found in the plans are highlighted red.
+                </div>
+
+                <div class="download-area">
+                    <div class="download-card">
+                        <h3>MLT Spreadsheet</h3>
+                        <p>Material Lifecycle Tool with all materials filled in</p>
+                        <a class="btn btn-primary" id="download-mlt" href="#">Download MLT</a>
+                    </div>
+                    <div class="download-card">
+                        <h3>Product Data Links</h3>
+                        <p>Vendor product page links for all materials</p>
+                        <a class="btn btn-primary" id="download-links" href="#">Download Links</a>
+                    </div>
+                </div>
+
+                <div style="margin-top: 24px;">
+                    <button class="btn btn-outline" onclick="startOver()">Start Over</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay hidden" id="loading">
+        <div class="loading-box">
+            <div class="spinner"></div>
+            <p id="loading-text">Processing...</p>
+            <div class="sub" id="loading-sub"></div>
+        </div>
+    </div>
+
+    <script>
+        // ═══════ STATE ═══════
+        let jobId = null;
+        let plansId = null;
+        let materials = [];
+        let projectInfo = {};
+        let plansData = null;    // parsed plans data
+        let crossRefData = null; // cross-reference results
+
+        // ═══════ FILE UPLOAD ═══════
+        function setupUpload(areaId, inputId, filenameId, metaId, onFile) {
+            const area = document.getElementById(areaId);
+            const input = document.getElementById(inputId);
+
+            input.addEventListener('change', e => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    area.classList.add('has-file');
+                    const fn = document.getElementById(filenameId);
+                    fn.textContent = file.name;
+                    fn.classList.remove('hidden');
+                    if (onFile) onFile(file);
+                }
+            });
+
+            area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('dragover'); });
+            area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+            area.addEventListener('drop', e => {
+                e.preventDefault();
+                area.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    input.files = e.dataTransfer.files;
+                    input.dispatchEvent(new Event('change'));
+                }
+            });
+        }
+
+        setupUpload('estimate-upload', 'estimate-input', 'estimate-filename', null, () => checkParseReady());
+        setupUpload('plans-upload', 'plans-input', 'plans-filename', 'plans-meta', uploadPlans);
+
+        document.getElementById('start-date').addEventListener('change', checkParseReady);
+
+        function checkParseReady() {
+            const hasFile = document.getElementById('estimate-input').files.length > 0;
+            const hasDate = document.getElementById('start-date').value;
+            document.getElementById('parse-btn').disabled = !(hasFile && hasDate);
+        }
+
+        // ═══════ UTILITIES ═══════
+        function showError(msg) {
+            const box = document.getElementById('error-box');
+            box.textContent = msg;
+            box.classList.remove('hidden');
+            setTimeout(() => box.classList.add('hidden'), 10000);
+        }
+
+        function showLoading(text, sub) {
+            document.getElementById('loading-text').textContent = text;
+            document.getElementById('loading-sub').textContent = sub || '';
+            document.getElementById('loading').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        function esc(val) {
+            if (val === null || val === undefined) return '';
+            return String(val).replace(/"/g, '&quot;');
+        }
+
+        function goToStep(step) {
+            document.getElementById('step1').classList.toggle('hidden', step !== 1);
+            document.getElementById('step2').classList.toggle('hidden', step !== 2);
+            document.getElementById('step3').classList.toggle('hidden', step !== 3);
+            ['step1-ind', 'step2-ind', 'step3-ind'].forEach((id, i) => {
+                const el = document.getElementById(id);
+                el.classList.remove('active', 'completed');
+                if (i + 1 === step) el.classList.add('active');
+                else if (i + 1 < step) el.classList.add('completed');
+            });
+        }
+
+        // ═══════ ESTIMATE PARSING ═══════
+        async function parseEstimate() {
+            const formData = new FormData();
+            formData.append('file', document.getElementById('estimate-input').files[0]);
+
+            showLoading('Parsing estimate with AI...', 'Extracting materials, vendors, and specifications. This takes 10-15 seconds.');
+
+            try {
+                const resp = await fetch('/parse', { method: 'POST', body: formData });
+                const data = await resp.json();
+
+                if (data.error) { hideLoading(); showError(data.error); return; }
+
+                jobId = data.job_id;
+                projectInfo = data.project;
+                materials = data.materials;
+
+                document.getElementById('project-name-display').textContent = projectInfo.project_name || '(not found)';
+                document.getElementById('customer-display').textContent = projectInfo.customer_name || '(not found)';
+                document.getElementById('quote-display').textContent = projectInfo.quote_number || '(not found)';
+                document.getElementById('date-display').textContent = document.getElementById('start-date').value;
+                document.getElementById('est-count').textContent = materials.length;
+
+                renderMaterialsTable();
+                hideLoading();
+
+                // Start box qty lookup in background
+                lookupBoxQuantities();
+
+                // If plans are uploaded, show scanner. Otherwise go to review.
+                if (plansId) {
+                    scanPlans();
+                } else {
+                    goToStep(2);
+                }
+            } catch (e) {
+                hideLoading();
+                showError('Failed to parse estimate: ' + e.message);
+            }
+        }
+
+        // ═══════ PLANS UPLOAD & SCANNING ═══════
+        async function uploadPlans(file) {
+            const meta = document.getElementById('plans-meta');
+            meta.textContent = `Uploading ${(file.size / (1024*1024)).toFixed(0)} MB...`;
+            meta.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const resp = await fetch('/upload-plans', { method: 'POST', body: formData });
+                const data = await resp.json();
+
+                if (data.error) { showError(data.error); return; }
+
+                plansId = data.plans_id;
+                meta.textContent = `${data.page_count} pages uploaded`;
+                checkParseReady();
+            } catch (e) {
+                meta.textContent = 'Upload failed';
+                showError('Failed to upload plans: ' + e.message);
+            }
+        }
+
+        async function scanPlans() {
+            document.getElementById('plans-scanner-card').classList.remove('hidden');
+            document.getElementById('scan-status').innerHTML = '<p style="color:#718096;">Scanning pages for finish schedule data...</p>';
+
+            showLoading('Scanning plans...', 'Searching all pages for finish schedule content');
+
+            try {
+                const resp = await fetch('/scan-plans', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plans_id: plansId }),
+                });
+                const data = await resp.json();
+                hideLoading();
+
+                if (data.error) { showError(data.error); return; }
+
+                document.getElementById('scan-status').innerHTML =
+                    `<p style="color:#276749; font-weight:600;">Found ${data.total_found} potential finish schedule pages</p>`;
+
+                renderPageCandidates(data.candidates);
+            } catch (e) {
+                hideLoading();
+                showError('Scan failed: ' + e.message);
+            }
+        }
+
+        function renderPageCandidates(candidates) {
+            const container = document.getElementById('page-candidates');
+            container.innerHTML = '';
+
+            candidates.forEach((c, i) => {
+                const checked = c.score >= 25 ? 'checked' : '';
+                const confColor = c.score >= 50 ? '#48bb78' : c.score >= 25 ? '#ed8936' : '#e53e3e';
+                const codesStr = c.codes_found ? c.codes_found.slice(0, 5).join(', ') : '';
+
+                container.innerHTML += `
+                    <div class="page-candidate">
+                        <input type="checkbox" class="page-check" value="${c.page}" ${checked} onchange="updateSelectedCount()">
+                        <div class="page-info">
+                            <span class="page-num">Page ${c.page}</span>
+                            <span class="page-type">${c.title || c.page_type}</span>
+                            ${codesStr ? `<div class="page-codes">Codes: ${codesStr}</div>` : ''}
+                        </div>
+                        <div>
+                            <div class="confidence-bar">
+                                <div class="confidence-bar-fill" style="width:${c.score}%; background:${confColor};"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const checks = document.querySelectorAll('.page-check:checked');
+            document.getElementById('selected-count').textContent = `${checks.length} pages selected`;
+            document.getElementById('parse-plans-btn').disabled = checks.length === 0;
+        }
+
+        async function parsePlans() {
+            const pages = Array.from(document.querySelectorAll('.page-check:checked')).map(c => parseInt(c.value));
+
+            if (pages.length === 0) { showError('Select at least one page'); return; }
+
+            showLoading('Parsing finish schedule...', `Analyzing ${pages.length} pages with AI. This may take 15-30 seconds.`);
+
+            try {
+                const resp = await fetch('/parse-plans', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plans_id: plansId, pages: pages }),
+                });
+                const data = await resp.json();
+
+                if (data.error) { hideLoading(); showError(data.error); return; }
+
+                plansData = data;
+                document.getElementById('plans-count').textContent =
+                    data.summary.materials_found + data.summary.rooms_found;
+
+                // Show plans tab
+                document.getElementById('tab-plans').classList.remove('hidden');
+                renderPlansTable();
+
+                // Run cross-reference
+                await runCrossReference();
+
+                hideLoading();
+                goToStep(2);
+            } catch (e) {
+                hideLoading();
+                showError('Plans parsing failed: ' + e.message);
+            }
+        }
+
+        function skipPlans() {
+            goToStep(2);
+        }
+
+        // ═══════ CROSS-REFERENCE ═══════
+        async function runCrossReference() {
+            if (!jobId || !plansId) return;
+
+            try {
+                const resp = await fetch('/cross-reference', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_id: jobId, plans_id: plansId }),
+                });
+                const data = await resp.json();
+
+                if (data.error) { showError(data.error); return; }
+
+                crossRefData = data;
+                document.getElementById('tab-crossref').classList.remove('hidden');
+
+                const total = (data.summary.matched || 0) + (data.summary.discrepancies || 0) +
+                              (data.summary.estimate_only || 0) + (data.summary.plans_only || 0);
+                document.getElementById('xref-count').textContent = total;
+
+                renderCrossRefTable();
+            } catch (e) {
+                showError('Cross-reference failed: ' + e.message);
+            }
+        }
+
+        // ═══════ TABLE RENDERERS ═══════
+        function renderMaterialsTable() {
+            const tbody = document.getElementById('materials-body');
+            tbody.innerHTML = '';
+
+            let currentSection = '';
+            materials.forEach((mat, idx) => {
+                if (mat.section && mat.section !== currentSection) {
+                    currentSection = mat.section;
+                    const tr = document.createElement('tr');
+                    tr.className = 'section-header-row';
+                    tr.innerHTML = `<td colspan="13">${currentSection}</td>`;
+                    tbody.appendChild(tr);
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="color:#a0aec0;">${idx + 1}</td>
+                    <td><input value="${esc(mat.product_code)}" data-idx="${idx}" data-field="product_code"></td>
+                    <td><input value="${esc(mat.location)}" data-idx="${idx}" data-field="location"></td>
+                    <td><input value="${esc(mat.vendor)}" data-idx="${idx}" data-field="vendor"></td>
+                    <td><input value="${esc(mat.selection)}" data-idx="${idx}" data-field="selection"></td>
+                    <td><input value="${esc(mat.color)}" data-idx="${idx}" data-field="color"></td>
+                    <td><input value="${esc(mat.size)}" data-idx="${idx}" data-field="size" style="min-width:60px;"></td>
+                    <td><input value="${esc(mat.thickness)}" data-idx="${idx}" data-field="thickness" style="min-width:60px;"></td>
+                    <td><input value="${esc(mat.grout_color)}" data-idx="${idx}" data-field="grout_color"></td>
+                    <td><input value="${esc(mat.grout_joint_size)}" data-idx="${idx}" data-field="grout_joint_size" style="min-width:50px;"></td>
+                    <td><input value="${esc(mat.adhesive)}" data-idx="${idx}" data-field="adhesive"></td>
+                    <td><input value="${esc(mat.install_type)}" data-idx="${idx}" data-field="install_type"></td>
+                    <td><input value="${mat.box_qty || ''}" data-idx="${idx}" data-field="box_qty" style="min-width:60px;text-align:right;" type="number" step="0.01" id="box-qty-${idx}"></td>
+                    <td><button class="btn-delete-row" onclick="deleteRow(${idx})" title="Remove">&times;</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            tbody.querySelectorAll('input').forEach(input => {
+                input.addEventListener('change', e => {
+                    const field = e.target.dataset.field;
+                    const val = field === 'box_qty' ? parseFloat(e.target.value) || 0 : e.target.value;
+                    materials[parseInt(e.target.dataset.idx)][field] = val;
+                });
+            });
+        }
+
+        function renderPlansTable() {
+            if (!plansData) return;
+            const tbody = document.getElementById('plans-body');
+            tbody.innerHTML = '';
+
+            // Material definitions
+            (plansData.material_definitions || []).forEach(md => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${esc(md.code)}</strong></td>
+                    <td>${esc(md.finish_type)}</td>
+                    <td>${esc(md.manufacturer)}</td>
+                    <td>${esc(md.product)}</td>
+                    <td>${esc(md.color)}</td>
+                    <td>${esc(md.dimensions)}</td>
+                    <td>${esc(md.application_area)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Legend entries
+            const legends = plansData.material_legends || {};
+            Object.entries(legends).forEach(([code, desc]) => {
+                const tr = document.createElement('tr');
+                tr.style.background = '#f7fafc';
+                tr.innerHTML = `
+                    <td><strong>${esc(code)}</strong></td>
+                    <td colspan="6" style="color:#718096;">${esc(desc)} <em>(from plan legend)</em></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderCrossRefTable() {
+            if (!crossRefData) return;
+            const tbody = document.getElementById('crossref-body');
+            tbody.innerHTML = '';
+
+            // Summary cards
+            const summary = crossRefData.summary || {};
+            document.getElementById('xref-summary').innerHTML = `
+                <div class="summary-card" style="background:#c6f6d5;">
+                    <div class="num" style="color:#276749;">${summary.matched || 0}</div>
+                    <div class="label" style="color:#276749;">Matched</div>
+                </div>
+                <div class="summary-card" style="background:#fefcbf;">
+                    <div class="num" style="color:#975a16;">${summary.discrepancies || 0}</div>
+                    <div class="label" style="color:#975a16;">Discrepancies</div>
+                </div>
+                <div class="summary-card" style="background:#bee3f8;">
+                    <div class="num" style="color:#2a4365;">${summary.estimate_only || 0}</div>
+                    <div class="label" style="color:#2a4365;">Estimate Only</div>
+                </div>
+                <div class="summary-card" style="background:#fed7d7;">
+                    <div class="num" style="color:#9b2c2c;">${summary.plans_only || 0}</div>
+                    <div class="label" style="color:#9b2c2c;">Plans Only</div>
+                </div>
+            `;
+
+            // Render each category
+            function addRows(items, statusClass, statusLabel) {
+                items.forEach(d => {
+                    const diffs = d.field_diffs || {};
+                    const diffHtml = Object.entries(diffs).map(([field, [est, plan]]) =>
+                        `<div><strong>${field}:</strong> <span class="diff-old">${esc(est)}</span> &rarr; <span class="diff-new">${esc(plan)}</span></div>`
+                    ).join('');
+                    const rooms = (d.rooms || []).slice(0, 3).join(', ');
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+                        <td><strong>${esc(d.finish_code)}</strong></td>
+                        <td>${esc(d.estimate_vendor)}</td>
+                        <td>${esc(d.estimate_product)}</td>
+                        <td>${esc(d.plans_manufacturer)}</td>
+                        <td>${esc(d.plans_product)}</td>
+                        <td>${diffHtml || '-'}</td>
+                        <td style="font-size:11px;">${esc(rooms)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            if (crossRefData.discrepancies?.length) {
+                addSectionHeader(tbody, 'Discrepancies - Review Required', '#975a16');
+                addRows(crossRefData.discrepancies, 'status-discrepancy', 'Discrepancy');
+            }
+            if (crossRefData.plans_only?.length) {
+                addSectionHeader(tbody, 'In Plans But Not In Estimate', '#9b2c2c');
+                addRows(crossRefData.plans_only, 'status-plans-only', 'Plans Only');
+            }
+            if (crossRefData.matches?.length) {
+                addSectionHeader(tbody, 'Matched', '#276749');
+                addRows(crossRefData.matches, 'status-match', 'Match');
+            }
+            if (crossRefData.estimate_only?.length) {
+                addSectionHeader(tbody, 'In Estimate But Not In Plans', '#2a4365');
+                addRows(crossRefData.estimate_only, 'status-estimate-only', 'Est. Only');
+            }
+        }
+
+        function addSectionHeader(tbody, text, color) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="8" style="background:#f7fafc; font-weight:600; color:${color}; padding:10px 8px;">${text}</td>`;
+            tbody.appendChild(tr);
+        }
+
+        // ═══════ TAB SWITCHING ═══════
+        function switchTab(tab) {
+            ['estimate', 'plans', 'crossref'].forEach(t => {
+                document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
+                document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+            });
+        }
+
+        // ═══════ ACTIONS ═══════
+        // ═══════ BOX QTY LOOKUP ═══════
+        async function lookupBoxQuantities() {
+            if (!jobId) return;
+
+            // Show status indicator
+            const countEl = document.getElementById('est-count');
+            const origText = countEl.textContent;
+            countEl.innerHTML = origText + ' &mdash; <span style="color:#ed8936;">Looking up box quantities...</span>';
+
+            try {
+                const resp = await fetch('/lookup-box-qty', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_id: jobId }),
+                });
+                const data = await resp.json();
+
+                if (data.error) {
+                    countEl.textContent = origText;
+                    return;
+                }
+
+                // Update materials with found box quantities
+                let updated = 0;
+                (data.results || []).forEach(r => {
+                    if (r.status === 'found' && r.box_qty > 0) {
+                        materials[r.index].box_qty = r.box_qty;
+                        materials[r.index].box_qty_unit = r.unit || 'SF';
+                        // Update the input field directly if it exists
+                        const input = document.getElementById(`box-qty-${r.index}`);
+                        if (input) input.value = r.box_qty;
+                        updated++;
+                    }
+                });
+
+                countEl.innerHTML = origText + ` &mdash; <span style="color:#48bb78;">Found box qty for ${data.found} of ${data.total} materials</span>`;
+
+                // Fade out the status after 10 seconds
+                setTimeout(() => { countEl.textContent = origText; }, 10000);
+
+            } catch (e) {
+                countEl.textContent = origText;
+            }
+        }
+
+        function deleteRow(idx) {
+            materials.splice(idx, 1);
+            renderMaterialsTable();
+            document.getElementById('est-count').textContent = materials.length;
+        }
+
+        async function generateFiles() {
+            showLoading('Generating files...', 'Creating MLT and Product Data Links spreadsheets');
+
+            try {
+                await fetch('/update-materials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_id: jobId, materials, project: projectInfo }),
+                });
+
+                const resp = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        job_id: jobId,
+                        start_date: document.getElementById('start-date').value,
+                        project_name: projectInfo.project_name || '',
+                    }),
+                });
+
+                const data = await resp.json();
+                if (data.error) { hideLoading(); showError(data.error); return; }
+
+                document.getElementById('download-mlt').href = `/download/${data.mlt_file}`;
+                document.getElementById('download-links').href = `/download/${data.links_file}`;
+
+                if (data.has_crossref) {
+                    document.getElementById('crossref-notice').classList.remove('hidden');
+                }
+
+                hideLoading();
+                goToStep(3);
+            } catch (e) {
+                hideLoading();
+                showError('Failed to generate files: ' + e.message);
+            }
+        }
+
+        function startOver() {
+            jobId = null; plansId = null; materials = []; projectInfo = {};
+            plansData = null; crossRefData = null;
+
+            document.getElementById('estimate-input').value = '';
+            document.getElementById('plans-input').value = '';
+            document.getElementById('estimate-upload').classList.remove('has-file');
+            document.getElementById('plans-upload').classList.remove('has-file');
+            document.getElementById('estimate-filename').classList.add('hidden');
+            document.getElementById('plans-filename').classList.add('hidden');
+            document.getElementById('plans-meta').classList.add('hidden');
+            document.getElementById('start-date').value = '';
+            document.getElementById('parse-btn').disabled = true;
+            document.getElementById('plans-scanner-card').classList.add('hidden');
+            document.getElementById('tab-plans').classList.add('hidden');
+            document.getElementById('tab-crossref').classList.add('hidden');
+            document.getElementById('crossref-notice').classList.add('hidden');
+
+            goToStep(1);
+        }
+    </script>
+</body>
+</html>
