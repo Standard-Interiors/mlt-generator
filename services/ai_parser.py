@@ -58,30 +58,39 @@ Given the raw text of an estimate, extract:
      * For mosaic tile: "Mfr Recommendation"
      * For non-tile: "N/A"
 
-   - adhesive: IMPORTANT — if the estimate names a specific adhesive product, ALWAYS use that exact name. Otherwise use these defaults by material type:
-     * Broadloom carpet: "Multipurpose carpet adhesive per mfr"
-     * Carpet tile: "Multipurpose carpet adhesive per mfr" (unless estimate specifies a different product)
-     * LVT/vinyl plank: "Pressure-sensitive adhesive per mfr" (unless estimate says direct glue or names specific product)
-     * Floor tile (standard, under 24"): "Modified thinset - ANSI A118.4"
-     * Floor tile (large format, 24" or larger in any dimension): "Modified thinset - ANSI A118.4 (large format)"
-     * Wall tile/backsplash (ceramic, small format on drywall): "Mastic"
-     * Wall tile (large format 12x24+ on shower surrounds): "CBP Versabond Thinset"
+   - adhesive: Use VENDOR-SPECIFIC adhesives based on these rules. If the estimate names a specific adhesive product, ALWAYS use that exact name instead.
+
+     CARPET & LVT — Vendor-specific rules:
+     * Shaw broadloom carpet: "Shaw H1000"
+     * Shaw carpet tile: "Shaw N5000" (alt: "Shaw 182CA - 3000")
+     * Shaw LVT/vinyl plank: "Shaw 164CA - 4200" (alt: "Shaw 179CA - 2200")
+     * Mohawk broadloom carpet: "Mohawk adhesive per mfr"
+     * Mohawk carpet tile: "Mohawk adhesive per mfr"
+     * Mohawk LVT/vinyl plank: "Mohawk adhesive per mfr"
+     * ALL OTHER vendors broadloom carpet: "Taylor Dynamic"
+     * ALL OTHER vendors carpet tile: "Taylor Dynamic"
+     * ALL OTHER vendors LVT/vinyl plank: "Taylor Dynamic"
+
+     TILE — Size-based rules:
+     * Floor tile and shower surrounds (up to 12"x24" size): "Versabond Thinset"
+     * Floor tile and shower surrounds (larger than 12"x24" in any dimension): "Versabond LFT"
+     * Wall tile backsplash (up to 3"x12" or mesh-mounted mosaic, on drywall, no moisture): "Mastic"
      * Natural stone/marble tile (marble, travertine, zellige, zellige-style): "White modified thinset - ANSI A118.4 (natural stone)"
-     * Zellige/handmade tile (Zagora, artisan, handmade): "White modified thinset - ANSI A118.4"
-     * Shower surrounds/cultured marble panels: "Panel adhesive per mfr"
+
+     OTHER:
+     * Cultured marble/prefab shower surround panels: "Panel adhesive per mfr"
      * Entrance mats: "N/A - Recessed frame system"
      * Laminate: "Per mfr - floating or glue-down"
-     * Resilient tile/sheet/rubber flooring: "Pressure-sensitive adhesive per mfr"
+     * Resilient tile/sheet/rubber flooring: "Per mfr recommendation"
      * Rubber base/cove base: "Cove base adhesive"
-     * Common named adhesives to watch for: Shaw 179CA, Shaw DP99, Shaw H1000, Shaw 182CA, Taylor Dynamic, Taylor Versatile, Versabond, Versabond LFT, CBP Versabond Thinset, Mapei Ultracolor Plus FA, XL Brands 2000 Plus, ES-90
 
    - install_type: The installation METHOD only (not the pattern). Use these standard phrases:
      * LVT, vinyl plank, carpet tile, rubber flooring: "Direct glue over primed substrate"
      * Broadloom carpet (glue-down): "Direct Gluedown over primed substrate"
      * Broadloom carpet (stretch-in with pad): "Stretch in"
      * Floor tile (all tile, including common area): "Thinset"
-     * Wall tile on drywall/backsplash (small format, mastic): "Mastic over Gypboard/Drywall"
-     * Wall tile general (thinset): "Thinset over substrate"
+     * Wall tile backsplash (mastic, up to 3"x12" on drywall): "Mastic over Gypboard/Drywall"
+     * Wall tile (thinset, larger than 3"x12" or in wet areas): "Thinset over substrate"
      * Shower surround tile: "Thinset over substrate"
      * Cultured marble/prefab shower surrounds: "Prefabricated - Cultured Marble"
      * Rubber base/cove base: "Direct glue to wall"
